@@ -38,7 +38,6 @@ fn main() {
                     continue;
                 }
 
-
                 if fix_mp3(&file) {
                     println!("Fixed file {file:?}");
                     num_fixed_files += 1;
@@ -67,10 +66,10 @@ fn fix_mp3(file: &std::fs::DirEntry) -> bool {
         .map(|f| f.content().text().unwrap().to_owned())
     else {
         println!("WARNING: TDOR missing from {file:?}");
-        // couldn't find a release date
         return false;
     };
 
+    tag.add_frame(id3::Frame::text("TDOR", &release_year));
     // TDRC -> "Recording Time"
     tag.add_frame(id3::Frame::text("TDRC", &release_year));
     // TDRL -> "Release Time"

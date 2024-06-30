@@ -1,9 +1,51 @@
+use clap::Arg;
 use id3::{Tag, TagLike};
 
-fn main() {
-    let path = std::path::Path::new("/home/penguino/Music/24thankyou/Everything I Was, Burning Slow/01 - 24thankyou - Everything I Was, Burning Slow.mp3");
+// MP3 ID3 tags: https://exiftool.org/TagNames/ID3.html
 
-    let mut tag = Tag::read_from_path(path).unwrap();
+fn main() {
+    let matches = clap::command!()
+        .arg(
+            Arg::new("path")
+                .required(true)
+                .value_name("PATH")
+                .value_parser(clap::builder::NonEmptyStringValueParser::new())
+                .help("Path to music library root"),
+        )
+        .get_matches();
+
+    let root = {
+        let path = matches.get_one::<String>("path").unwrap().to_string();
+        std::fs::read_dir(path).expect("Failed to open specified directory")
+    };
+
+    macro_rules! only_ok_directories_in {
+        ( $path: expr) => {
+            $path
+                .filter_map(Result::ok)
+                .filter(|d| d.file_type().unwrap().is_dir())
+                .map(|d| (d.file_name(), std::fs::read_dir(d.path())))
+        };
+    }
+
+    for (_, artist_path) in only_ok_directories_in!(root) {
+        for (_, album_path) in only_ok_directories_in!(artist_path.unwrap()) {
+            for file in album_path.unwrap().filter_map(Result::ok) {
+                // skip non-mp3s
+                if !file.path().extension().is_some_and(|e| e == "mp3") {
+                    continue;
+                }
+
+                fix_mp3(&file);
+            }
+        }
+    }
+
+    println!("Done!");
+}
+
+fn fix_mp3(file: &std::fs::DirEntry) {
+    let mut tag = Tag::read_from_path(file.path()).unwrap();
 
     // skip fixed files
     if tag.frames().any(|f| f.id() == "TDRC") {
@@ -23,5 +65,6 @@ fn main() {
     // TDRL -> "Release Time"
     tag.add_frame(id3::Frame::text("TDRL", &release_year));
 
-    tag.write_to_path(path, id3::Version::Id3v22).unwrap();
+    tag.write_to_path(file.path(), id3::Version::Id3v24)
+        .unwrap();
 }

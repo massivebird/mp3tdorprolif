@@ -49,7 +49,9 @@ fn main() {
 }
 
 fn fix_mp3(file: &std::fs::DirEntry) -> bool {
-    let mut tag = Tag::read_from_path(file.path()).unwrap();
+    let Ok(mut tag) = Tag::read_from_path(file.path()) else {
+        return false;
+    };
 
     // skip fixed files
     if tag.frames().any(|f| f.id() == "TDRC") {

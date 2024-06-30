@@ -66,7 +66,7 @@ fn fix_mp3(file: &std::fs::DirEntry) -> bool {
         .find(|f| f.id() == "TDOR")
         .map(|f| f.content().text().unwrap().to_owned())
     else {
-        println!("WARNING: TDRC missing from {file:?}");
+        println!("WARNING: TDOR missing from {file:?}");
         // couldn't find a release date
         return false;
     };

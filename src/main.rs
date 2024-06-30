@@ -28,6 +28,8 @@ fn main() {
         };
     }
 
+    let mut num_fixed_files = 0;
+
     for (_, artist_path) in only_ok_directories_in!(root) {
         for (_, album_path) in only_ok_directories_in!(artist_path.unwrap()) {
             for file in album_path.unwrap().filter_map(Result::ok) {
@@ -36,20 +38,22 @@ fn main() {
                     continue;
                 }
 
-                fix_mp3(&file);
+                if fix_mp3(&file) {
+                    num_fixed_files += 1;
+                };
             }
         }
     }
 
-    println!("Done!");
+    println!("Done! Fixed {num_fixed_files} files.");
 }
 
-fn fix_mp3(file: &std::fs::DirEntry) {
+fn fix_mp3(file: &std::fs::DirEntry) -> bool {
     let mut tag = Tag::read_from_path(file.path()).unwrap();
 
     // skip fixed files
     if tag.frames().any(|f| f.id() == "TDRC") {
-        return;
+        return false;
     };
 
     let Some(release_year) = tag
@@ -57,7 +61,8 @@ fn fix_mp3(file: &std::fs::DirEntry) {
         .find(|f| f.id() == "TDOR")
         .map(|f| f.content().text().unwrap().to_owned())
     else {
-        return;
+        // couldn't find a release date
+        return false;
     };
 
     // TDRC -> "Recording Time"
@@ -67,4 +72,6 @@ fn fix_mp3(file: &std::fs::DirEntry) {
 
     tag.write_to_path(file.path(), id3::Version::Id3v24)
         .unwrap();
+
+    true
 }

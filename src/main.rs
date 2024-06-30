@@ -56,16 +56,18 @@ fn fix_mp3(file: &std::fs::DirEntry) -> bool {
     };
 
     // skip fixed files
-    if tag.frames().any(|f| f.id() == "TDRC") {
+    if tag.frames().any(|f| f.id() == "TDOR")
+        && tag.frames().any(|f| f.id() == "TDRC")
+    {
         return false;
     };
 
     let Some(release_year) = tag
         .frames()
-        .find(|f| f.id() == "TDOR")
+        .find(|f| matches!(f.id(), "TDOR" | "TDRC" | "TDRL"))
         .map(|f| f.content().text().unwrap().to_owned())
     else {
-        println!("WARNING: TDOR missing from {file:?}");
+        // failed to find a release date
         return false;
     };
 

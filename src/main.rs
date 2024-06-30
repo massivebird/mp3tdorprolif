@@ -38,7 +38,9 @@ fn main() {
                     continue;
                 }
 
+
                 if fix_mp3(&file) {
+                    println!("Fixed file {file:?}");
                     num_fixed_files += 1;
                 };
             }
@@ -50,6 +52,7 @@ fn main() {
 
 fn fix_mp3(file: &std::fs::DirEntry) -> bool {
     let Ok(mut tag) = Tag::read_from_path(file.path()) else {
+        println!("WARNING: failed to read tags from {file:?}");
         return false;
     };
 
@@ -63,6 +66,7 @@ fn fix_mp3(file: &std::fs::DirEntry) -> bool {
         .find(|f| f.id() == "TDOR")
         .map(|f| f.content().text().unwrap().to_owned())
     else {
+        println!("WARNING: TDRC missing from {file:?}");
         // couldn't find a release date
         return false;
     };
